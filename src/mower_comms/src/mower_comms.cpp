@@ -73,6 +73,7 @@ xesc_driver::XescDriver *right_xesc_interface;
 
 std::mutex ll_status_mutex;
 struct ll_status last_ll_status = {0};
+struct ll_imu_quaternion last_ll_quat = {0};
 
 sensor_msgs::MagneticField sensor_mag_msg;
 sensor_msgs::Imu sensor_imu_msg;
@@ -294,38 +295,35 @@ void handleLowLevelStatus(struct ll_status *status) {
     std::unique_lock<std::mutex> lk(ll_status_mutex);
     last_ll_status = *status;
 }
+void handleLowLevelImuQuat(struct ll_imu_quaternion *quat) {
+    last_ll_quat = *quat;
+}
+
 
 void handleLowLevelIMU(struct ll_imu *imu) {
-    mower_msgs::ImuRaw imu_msg;
-    imu_msg.dt = imu->dt_millis;
-    imu_msg.ax = imu->acceleration_mss[0];
-    imu_msg.ay = imu->acceleration_mss[1];
-    imu_msg.az = imu->acceleration_mss[2];
-    imu_msg.gx = imu->gyro_rads[0];
-    imu_msg.gy = imu->gyro_rads[1];
-    imu_msg.gz = imu->gyro_rads[2];
-    imu_msg.mx = imu->mag_uT[0];
-    imu_msg.my = imu->mag_uT[1];
-    imu_msg.mz = imu->mag_uT[2];
-
 
     sensor_mag_msg.header.stamp = ros::Time::now();
     sensor_mag_msg.header.seq++;
     sensor_mag_msg.header.frame_id = "base_link";
-    sensor_mag_msg.magnetic_field.x = imu_msg.mx/1000.0;
-    sensor_mag_msg.magnetic_field.y = imu_msg.my/1000.0;
-    sensor_mag_msg.magnetic_field.z = imu_msg.mz/1000.0;
+    sensor_mag_msg.magnetic_field.x = imu->mag_uT[0]/1000.0;
+    sensor_mag_msg.magnetic_field.y = imu->mag_uT[1]/1000.0;
+    sensor_mag_msg.magnetic_field.z = imu->mag_uT[2]/1000.0;
 
     sensor_imu_msg.header.stamp = ros::Time::now();
     sensor_imu_msg.header.seq++;
     sensor_imu_msg.header.frame_id = "base_link";
-    sensor_imu_msg.linear_acceleration.x = imu_msg.ax;
-    sensor_imu_msg.linear_acceleration.y = imu_msg.ay;
-    sensor_imu_msg.linear_acceleration.z = imu_msg.az;
-    sensor_imu_msg.angular_velocity.x = imu_msg.gx;
-    sensor_imu_msg.angular_velocity.y = imu_msg.gy;
-    sensor_imu_msg.angular_velocity.z = imu_msg.gz;
- 
+    sensor_imu_msg.linear_acceleration.x = imu->acceleration_mss[0];
+    sensor_imu_msg.linear_acceleration.y = imu->acceleration_mss[1];
+    sensor_imu_msg.linear_acceleration.z = imu->acceleration_mss[2];
+    sensor_imu_msg.angular_velocity.x = imu->gyro_rads[0];
+    sensor_imu_msg.angular_velocity.y = imu->gyro_rads[1];
+    sensor_imu_msg.angular_velocity.z = imu->gyro_rads[2];
+
+    sensor_imu_msg.orientation.w = last_ll_quat.q[0];
+    sensor_imu_msg.orientation.x = last_ll_quat.q[1];
+    sensor_imu_msg.orientation.y = last_ll_quat.q[2];
+    sensor_imu_msg.orientation.z = last_ll_quat.q[3];
+
     sensor_imu_pub.publish(sensor_imu_msg);
     sensor_mag_pub.publish(sensor_mag_msg);
 }
@@ -449,6 +447,15 @@ int main(int argc, char **argv) {
                                             "Low Level Board sent a valid packet with the wrong size. Type was STATUS");
                                 }
                                 break;
+                                case PACKET_ID_LL_IMU_QUATERNION:
+                                if (data_size == sizeof(struct ll_imu_quaternion)) {
+                                    handleLowLevelImuQuat((struct ll_imu_quaternion *) buffer_decoded);
+                                } else {
+                                    ROS_INFO_STREAM(
+                                            "Low Level Board sent a valid packet with the wrong size. Type was IMU_QUATERNION");
+                                }
+                                break;
+
                             case PACKET_ID_LL_IMU:
                                 if (data_size == sizeof(struct ll_imu)) {
                                     handleLowLevelIMU((struct ll_imu *) buffer_decoded);

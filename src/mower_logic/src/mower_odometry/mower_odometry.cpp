@@ -310,6 +310,8 @@ bool statusReceivedOrientation(const mower_msgs::Status::ConstPtr &msg) {
 
     m.getRPY(unused1, unused2, yaw);
 
+    yaw = lastImu.orientation.w;
+
     yaw += config.imu_offset * (M_PI / 180.0);
     yaw = fmod(yaw + (M_PI_2), 2.0 * M_PI);
     while (yaw < 0) {
@@ -406,7 +408,7 @@ int main(int argc, char **argv) {
     gpsOdometryValid = false;
 
     ros::Subscriber status_sub = n.subscribe("mower/status", 100, statusReceived);
-    ros::Subscriber imu_sub = n.subscribe("imu/data", 100, imuReceived);
+    ros::Subscriber imu_sub = n.subscribe("imu/data_raw", 100, imuReceived);
 
     bool use_relative_position;
     paramNh.param("use_relative_position", use_relative_position, true);
