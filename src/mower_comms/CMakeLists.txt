@@ -167,6 +167,15 @@ add_executable(mower_comms
 add_dependencies(mower_comms ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
 target_link_libraries(mower_comms ${catkin_LIBRARIES})
 
+
+add_executable(mower_udp_bridge
+        src/mower_udp_bridge.cpp
+        )
+add_dependencies(mower_udp_bridge ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
+target_link_libraries(mower_udp_bridge ${catkin_LIBRARIES})
+
+
+
 #############
 ## Install ##
 #############
