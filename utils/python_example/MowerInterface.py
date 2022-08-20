@@ -42,8 +42,11 @@ class _MowerSenderThread(threading.Thread):
             if self.stopped:
                 self.lock.release()
                 break
-            self.sock.sendto(struct.pack("<ffbb", self.speed_linear, self.speed_angular, self.mower_enabled, False),
-                             (self.mower_ip, 4242))
+            try:
+                self.sock.sendto(struct.pack("<ffbb", self.speed_linear, self.speed_angular, self.mower_enabled, False),
+                                 (self.mower_ip, 4242))
+            except socket.error:
+                print("Error sending data to the robot")
             self.lock.release()
             time.sleep(0.02)
         print("Stopped sender thread")
