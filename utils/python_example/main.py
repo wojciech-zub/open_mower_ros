@@ -24,17 +24,21 @@ if __name__ == '__main__':
     # drive forward with 20% power for one second
     robot.set_speeds(0.2, 0.0)
     time.sleep(1)
-    # rotate in place with 15% power for one second
-    robot.set_speeds(0.0, 0.5)
+    # stop the mower
+    robot.set_speeds(0.0, 0.0)
+    time.sleep(1)
+    # rotate in place for one second
+    robot.set_speeds(0.0, 1.5)
     time.sleep(1)
     # stop the mower
     robot.set_speeds(0.0, 0.0)
     time.sleep(1)
-    # rotate in place in the other direction with 15% power for one second
-    robot.set_speeds(0.0, -0.5)
+    # rotate in place in the other direction for one second
+    robot.set_speeds(0.0, -1.5)
     time.sleep(1)
     # stop the mower
     robot.set_speeds(0.0, 0.0)
+    time.sleep(1)
     # drive back with 20% power for one second
     robot.set_speeds(-0.2, 0)
     time.sleep(1)
