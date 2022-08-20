@@ -95,12 +95,19 @@ void publishActuators() {
     if (ros::Time::now() - last_cmd_vel > ros::Duration(1.0)) {
         speed_l = 0;
         speed_r = 0;
-
+        if(!is_emergency()) {
+            ll_clear_emergency = false;
+            emergency_high_level = true;
+        }
     }
     if (ros::Time::now() - last_cmd_vel > ros::Duration(25.0)) {
         speed_l = 0;
         speed_r = 0;
         speed_mow = 0;
+        if(!is_emergency()) {
+            ll_clear_emergency = false;
+            emergency_high_level = true;
+        }
     }
 
     if(mow_xesc_interface) {
