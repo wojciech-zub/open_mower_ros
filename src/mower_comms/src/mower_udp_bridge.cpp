@@ -157,6 +157,7 @@ int main(int argc, char **argv) {
     spinner.start();
 
     setMowerEnabled(false);
+    setEmergencyMode(true);
 
     udp::endpoint current_sender;
 
@@ -181,6 +182,7 @@ int main(int argc, char **argv) {
 
                 if (control->reset_emergency) {
                     ROS_WARN_STREAM("Resetting Emergency Mode");
+                    setEmergencyMode(false);
                 }
 
             } else {
