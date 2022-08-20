@@ -223,7 +223,6 @@ bool setMowEnabled(mower_msgs::MowerControlSrvRequest &req, mower_msgs::MowerCon
     } else {
         speed_mow = 0;
     }
-    ROS_INFO_STREAM("Setting mow enabled to " << speed_mow);
     return true;
 }
 
