@@ -6,7 +6,7 @@ import time
 if __name__ == '__main__':
     # Create a MowerInterface to talk to the mower, put the IP address of the mower here
     # That's all you need to do
-    robot = MowerInterface("192.168.100.142")
+    robot = MowerInterface("127.0.0.1")
 
     # wait for some status to arrive, so that we know that we're connected to the mower
     while not robot.has_status():
@@ -53,8 +53,8 @@ if __name__ == '__main__':
 
 
     while True:
-        print("robot status: emergency: %s, v-batt: %s, v-charge: %s, charge current:%s" % (
-            robot.get_emergency(), robot.get_v_batt(), robot.get_v_charge(), robot.get_charge_current())
+        print("robot status: stamp: %s, emergency: %s, v-batt: %s, v-charge: %s, charge current:%s, ticks left: %s, ticks right: %s, gx: %s, gy: %s, gz: %s, ax: %s, ay: %s, az: %s" % (
+            robot.get_timestamp(), robot.get_emergency(), robot.get_v_batt(), robot.get_v_charge(), robot.get_charge_current(), robot.get_ticks_left(), robot.get_ticks_right(), robot.get_imu_gx(), robot.get_imu_gy(), robot.get_imu_gz(), robot.get_imu_ax(), robot.get_imu_ay(), robot.get_imu_az())
         )
         time.sleep(0.5)
 

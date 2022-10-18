@@ -64,6 +64,15 @@ class _MowerReceiverThread(threading.Thread):
         self.has_emergency = False
         self.stopped = False
         self.has_data = False
+        self.timestamp = 0
+        self.ticks_left = 0
+        self.ticks_right = 0
+        self.gx = 0
+        self.gy = 0
+        self.gz = 0
+        self.ax = 0
+        self.ay = 0
+        self.az = 0
 
     def stop(self):
         self.lock.acquire()
@@ -85,9 +94,12 @@ class _MowerReceiverThread(threading.Thread):
             if self.stopped:
                 self.lock.release()
                 break
-            if len(data) == 13:
-                (self.has_emergency, self.v_charge, self.v_batt, self.charge_current) = struct.unpack("<bfff", data)
+            if len(data) == 49:
+                (self.timestamp, self.has_emergency, self.v_charge, self.v_batt, self.charge_current, self.ticks_left,
+                 self.ticks_right, self.gx, self.gy, self.gz, self.ax, self.ay, self.az) = struct.unpack("<IbfffIIffffff", data)
                 self.has_data = True
+            else:
+                print("got packet of wrong size: %s" % len(data))
             self.lock.release()
         print("Stopped receiver thread")
 
@@ -118,6 +130,60 @@ class _MowerReceiverThread(threading.Thread):
     def get_has_data(self):
         self.lock.acquire()
         val = self.has_data
+        self.lock.release()
+        return val
+
+    def get_timestamp(self):
+        self.lock.acquire()
+        val = self.timestamp
+        self.lock.release()
+        return val
+
+    def get_ticks_left(self):
+        self.lock.acquire()
+        val = self.ticks_left
+        self.lock.release()
+        return val
+
+    def get_ticks_right(self):
+        self.lock.acquire()
+        val = self.ticks_right
+        self.lock.release()
+        return val
+
+    def get_imu_gx(self):
+        self.lock.acquire()
+        val = self.gx
+        self.lock.release()
+        return val
+
+    def get_imu_gy(self):
+        self.lock.acquire()
+        val = self.gy
+        self.lock.release()
+        return val
+
+    def get_imu_gz(self):
+        self.lock.acquire()
+        val = self.gz
+        self.lock.release()
+        return val
+
+    def get_imu_ax(self):
+        self.lock.acquire()
+        val = self.ax
+        self.lock.release()
+        return val
+
+    def get_imu_ay(self):
+        self.lock.acquire()
+        val = self.ay
+        self.lock.release()
+        return val
+
+    def get_imu_az(self):
+        self.lock.acquire()
+        val = self.az
         self.lock.release()
         return val
 
@@ -154,3 +220,30 @@ class MowerInterface:
 
     def has_status(self):
         return self._receiver.get_has_data()
+
+    def get_timestamp(self):
+        return self._receiver.get_timestamp()
+
+    def get_ticks_left(self):
+        return self._receiver.get_ticks_left()
+
+    def get_ticks_right(self):
+        return self._receiver.get_ticks_right()
+
+    def get_imu_gx(self):
+        return self._receiver.get_imu_gx()
+
+    def get_imu_gy(self):
+        return self._receiver.get_imu_gy()
+
+    def get_imu_gz(self):
+        return self._receiver.get_imu_gz()
+
+    def get_imu_ax(self):
+        return self._receiver.get_imu_ax()
+
+    def get_imu_ay(self):
+        return self._receiver.get_imu_ay()
+
+    def get_imu_az(self):
+        return self._receiver.get_imu_az()
