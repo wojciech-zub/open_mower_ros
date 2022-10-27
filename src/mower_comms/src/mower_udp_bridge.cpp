@@ -24,77 +24,12 @@
 #include "mower_msgs/EmergencyStopSrv.h"
 #include "mower_msgs/Status.h"
 #include "sensor_msgs/Imu.h"
-#include "boost/version.hpp"
 
 using boost::asio::ip::udp;
-class client
-{
-public:
-    client(const udp::endpoint& listen_endpoint)
-            : socket_(io_context_, listen_endpoint)
-    {
-    }
-
-    std::size_t receive(const boost::asio::mutable_buffer& buffer,
-                        std::chrono::steady_clock::duration timeout,
-                        udp::endpoint &sender,
-                        boost::system::error_code& error)
-    {
-        // Start the asynchronous operation. The handle_receive function used as a
-        // callback will update the error and length variables.
-        std::size_t length = 0;
-        socket_.async_receive_from(boost::asio::buffer(buffer), sender,
-                              [capture0 = &error, capture1 = &length](auto && PH1, auto && PH2) { return client::handle_receive(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), capture0, capture1); });
-
-        // Run the operation until it completes, or until the timeout.
-        run(timeout);
-
-        return length;
-    }
-
-private:
-    void run(std::chrono::steady_clock::duration timeout)
-    {
-        // Restart the io_context, as it may have been left in the "stopped" state
-        // by a previous operation.
-        io_context_.restart();
-
-        // Block until the asynchronous operation has completed, or timed out. If
-        // the pending asynchronous operation is a composed operation, the deadline
-        // applies to the entire operation, rather than individual operations on
-        // the socket.
-        io_context_.run_for(timeout);
-
-        // If the asynchronous operation completed successfully then the io_context
-        // would have been stopped due to running out of work. If it was not
-        // stopped, then the io_context::run_for call must have timed out.
-        if (!io_context_.stopped())
-        {
-            // Cancel the outstanding asynchronous operation.
-            socket_.cancel();
-
-            // Run the io_context again until the operation completes.
-            io_context_.run();
-        }
-    }
-
-    static void handle_receive(
-            const boost::system::error_code& error, std::size_t length,
-            boost::system::error_code* out_error, std::size_t* out_length)
-    {
-        *out_error = error;
-        *out_length = length;
-    }
-
-private:
-    boost::asio::io_context io_context_;
-    udp::socket socket_;
-};
-
 
 // UDP Comms
 boost::asio::io_service io_service;
-client c( udp::endpoint(udp::v4(), 4242));
+udp::socket s(io_service, udp::endpoint(udp::v4(), 4242));
 udp::socket status_socket(io_service);
 std::array<uint8_t, 1024> bufferArray;
 
@@ -144,7 +79,12 @@ void ioThread() {
     }
     ROS_INFO_STREAM("shutting down socket");
 
-
+    // Shut down socket in order to cancel the loop below if no messages arrive
+    try {
+        s.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+    } catch (boost::exception &e) {
+        // NOP
+    }
     ROS_INFO_STREAM("IO thread stopped");
 }
 
@@ -255,14 +195,10 @@ int main(int argc, char **argv) {
 
     udp::endpoint current_sender;
 
-//    s.set_option(boost::asio::detail::socket_option::integer<SOL_SOCKET, SO_RCVTIMEO>{ 200 });
-
     while (ros::ok()) {
         try {
             udp::endpoint sender;
-            boost::system::error_code error;
-            size_t size = c.receive(boost::asio::buffer(bufferArray),
-                      std::chrono::seconds(1), sender,error);
+            size_t size = s.receive_from(boost::asio::buffer(bufferArray), sender);
 
             mutex.lock();
             status_endpoint = sender;
@@ -284,9 +220,7 @@ int main(int argc, char **argv) {
                 }
 
             } else {
-                if(size != 0) {
-                    ROS_INFO_STREAM("Got packet of invalid size:" << size);
-                }
+                ROS_INFO_STREAM("Got packet of invalid size:" << size);
             }
         } catch (boost::exception &e) {
             ROS_ERROR_STREAM("Got boost exception:" << boost::diagnostic_information(e));
