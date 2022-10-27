@@ -40,7 +40,7 @@ bool has_messages = false;
 // ROS Interface
 ros::ServiceClient mowerMotorClient, emergencyClient;
 geometry_msgs::Twist twist;
-
+ros::Time last_update;
 bool mowerEnabled = false;
 
 sensor_msgs::Imu last_imu;
@@ -141,6 +141,17 @@ void statusReceived(const mower_msgs::Status::ConstPtr &msg) {
     mutex.unlock();
 }
 
+void watchdogTimer(const ros::TimerEvent &e) {
+    double secs_since_last_packet;
+    mutex.lock();
+    secs_since_last_packet = (ros::Time::now() - last_update).toSec();
+    mutex.unlock();
+    if(secs_since_last_packet > 10.0) {
+        ROS_ERROR("udp timeout, shutting down");
+        ros::shutdown();
+    }
+}
+
 
 int main(int argc, char **argv) {
     status_socket.open(udp::v4());
@@ -170,6 +181,7 @@ int main(int argc, char **argv) {
                                               ros::TransportHints().tcpNoDelay(true));
 
 
+
     if (paramNh.param("wait_for_services", true)) {
         ROS_INFO("Waiting for mower service");
         if (!mowerMotorClient.waitForExistence(ros::Duration(60.0, 0.0))) {
@@ -194,6 +206,10 @@ int main(int argc, char **argv) {
 
     udp::endpoint current_sender;
 
+    last_update = ros::Time::now();
+
+    ros::Timer t = n.createTimer(ros::Duration(1.0), watchdogTimer);
+
     while (ros::ok()) {
         try {
             udp::endpoint sender;
@@ -205,6 +221,10 @@ int main(int argc, char **argv) {
             mutex.unlock();
 
             if (size == sizeof(struct control_struct)) {
+                mutex.lock();
+                last_update = ros::Time::now();
+                mutex.unlock();
+
                 auto *control = (struct control_struct *) bufferArray.data();
                 // send the twist to ROS
                 twist.linear.x = control->speed;
