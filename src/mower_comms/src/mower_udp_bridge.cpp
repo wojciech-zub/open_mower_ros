@@ -41,6 +41,7 @@ bool has_messages = false;
 ros::ServiceClient mowerMotorClient, emergencyClient;
 geometry_msgs::Twist twist;
 ros::Time last_update;
+ros::Time last_update_send;
 bool mowerEnabled = false;
 
 sensor_msgs::Imu last_imu;
@@ -132,7 +133,8 @@ void statusReceived(const mower_msgs::Status::ConstPtr &msg) {
                 .az = static_cast<float>(last_imu.linear_acceleration.z),
         };
         try {
-        status_socket.send_to(boost::asio::buffer(&status, sizeof(status)), udp::endpoint(status_endpoint.address(), 4243));
+            status_socket.send_to(boost::asio::buffer(&status, sizeof(status)), udp::endpoint(status_endpoint.address(), 4243));
+            last_update_send = ros::Time::now();
         } catch (boost::exception &e) {
             ROS_ERROR_STREAM("Got boost exception:" << boost::diagnostic_information(e) << ", shutting down.");
             ros::shutdown();
@@ -143,13 +145,20 @@ void statusReceived(const mower_msgs::Status::ConstPtr &msg) {
 
 void watchdogTimer(const ros::TimerEvent &e) {
     double secs_since_last_packet;
+    double secs_since_last_packet_send;
     mutex.lock();
     secs_since_last_packet = (ros::Time::now() - last_update).toSec();
+    secs_since_last_packet_send = (ros::Time::now() - last_update_send).toSec();
     mutex.unlock();
     if(secs_since_last_packet > 10.0) {
-        ROS_ERROR("udp timeout, shutting down");
+        ROS_ERROR("udp receive timeout, shutting down");
         ros::shutdown();
     }
+    if(secs_since_last_packet_send > 10.0) {
+        ROS_ERROR("udp send timeout, shutting down");
+        ros::shutdown();
+    }
+
 }
 
 
@@ -207,6 +216,7 @@ int main(int argc, char **argv) {
     udp::endpoint current_sender;
 
     last_update = ros::Time::now();
+    last_update_send = ros::Time::now();
 
     ros::Timer t = n.createTimer(ros::Duration(1.0), watchdogTimer);
 
@@ -215,13 +225,12 @@ int main(int argc, char **argv) {
             udp::endpoint sender;
             size_t size = s.receive_from(boost::asio::buffer(bufferArray), sender);
 
-            mutex.lock();
-            status_endpoint = sender;
-            has_messages = true;
-            mutex.unlock();
+
 
             if (size == sizeof(struct control_struct)) {
                 mutex.lock();
+                status_endpoint = sender;
+                has_messages = true;
                 last_update = ros::Time::now();
                 mutex.unlock();
 
