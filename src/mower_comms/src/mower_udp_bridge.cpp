@@ -131,13 +131,7 @@ void statusReceived(const mower_msgs::Status::ConstPtr &msg) {
                 .ay = static_cast<float>(last_imu.linear_acceleration.y),
                 .az = static_cast<float>(last_imu.linear_acceleration.z),
         };
-        try {
-            status_socket.send_to(boost::asio::buffer(&status, sizeof(status)), udp::endpoint(status_endpoint.address(), 4243));
-        } catch (boost::exception &e) {
-            ROS_ERROR_STREAM("Got boost exception during status send:" << boost::diagnostic_information(e));
-            has_messages = false;
-        }
-
+        status_socket.send_to(boost::asio::buffer(&status, sizeof(status)), udp::endpoint(status_endpoint.address(), 4243));
     }
     mutex.unlock();
 }
