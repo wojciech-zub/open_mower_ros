@@ -4,12 +4,12 @@
         <arg name="prefix" value="record"/>
     </include>
 
-    <node pkg="mower_comms" type="mower_comms" name="mower_comms">
+    <node pkg="mower_comms" type="mower_comms" name="mower_comms" respawn="true">
         <rosparam file="$(find open_mower)/params/hardware_specific/$(env OM_MOWER)/comms_$(env OM_MOWER_ESC_TYPE)_params.yaml"/>
         <rosparam file="$(find open_mower)/params/hardware_specific/$(env OM_MOWER)/comms_general_params.yaml"/>
     </node>
 
-    <node pkg="mower_comms" type="mower_udp_bridge" name="mower_udp_bridge">
+    <node pkg="mower_comms" type="mower_udp_bridge" name="mower_udp_bridge"  respawn="true">
     </node>
 
 
