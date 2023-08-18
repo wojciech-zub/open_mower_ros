@@ -128,6 +128,8 @@ export OM_UNDOCK_DISTANCE=2.0
 # undocking will be used.
 #OM_PERIMETER_SIGNAL=1
 
+export OM_DOCKING_APPROACH_DISTANCE=1.5
+
 # How many outlines should the mover drive. It's not recommended to set this below 4.
 export OM_OUTLINE_COUNT=4
 
